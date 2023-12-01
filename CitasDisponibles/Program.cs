@@ -14,18 +14,27 @@ namespace CitasDisponibles
     {
         List<SkeletorCitas> Citas;
         string diaConsultar;
+        DateTime horaFinalDia = DateTime.ParseExact("17:00", "HH:mm", null);
         static void Main(string[] args)
         {
             Program program = new Program();
             var continuar = "si";
             program.LecturaJson();
-            while(continuar == "si")
+            while(continuar.ToLower() == "si" || continuar.ToLower() == "sí")
             {
-                Console.WriteLine("Ingrese día para consultar.");
+                Console.WriteLine("¿Cuál día de la semana quiere consultar?");
                 program.diaConsultar = Console.ReadLine();
 
-                Console.WriteLine(program.CuposDisponibles(program.diaConsultar));
-                continuar = Console.ReadLine();
+                if (program.diaConsultar.ToLower()=="lunes" || program.diaConsultar.ToLower() == "martes" || program.diaConsultar.ToLower() == "miércoles" || program.diaConsultar.ToLower() == "jueves" || program.diaConsultar.ToLower() == "viernes")
+                {
+                    Console.WriteLine($"Total de espacios disponibles {program.CuposDisponibles(program.diaConsultar)}");
+                    Console.WriteLine("¿Quiere consultar otro día? (Sí - No)");
+                    continuar = Console.ReadLine();
+                }
+                else
+                {
+                    Console.WriteLine("El día que escribió no es correcto.");
+                }
             }
         }
         private void LecturaJson()
@@ -49,7 +58,6 @@ namespace CitasDisponibles
         }
         private class SkeletorCitas
         {
-            // Se crea clase con los atributos necesarios para leer archivo Json
             public string Day { get; set; }
             public string Hour { get; set; }
             public string Duration { get; set; }
@@ -57,16 +65,17 @@ namespace CitasDisponibles
         private int CuposDisponibles(string diaCita)
         {
             List<SkeletorCitas> diaConsultadoCitas = Citas.Where(cita => cita.Day.ToLower() == diaCita.ToLower()).ToList();
+            var citasOrdenadasPorHora = diaConsultadoCitas.OrderBy(cita => cita.Hour).ToList();
             DateTime horaComparacion = DateTime.ParseExact("09:00", "HH:mm", null);
-            DateTime horaFinalDia = DateTime.ParseExact("17:00", "HH:mm", null);
             int cuposDisponibles = 0;
-            foreach (var horariosOcupados in diaConsultadoCitas)
+            foreach (var horariosOcupados in citasOrdenadasPorHora)
             {
-                var minutosDisponibles = (DateTime.ParseExact(horariosOcupados.Hour, "HH:mm", null) - horaComparacion).TotalMinutes;
-                cuposDisponibles = minutosDisponibles/30 >1 ? cuposDisponibles+(int)Math.Floor(minutosDisponibles/30) : cuposDisponibles;
-                Console.Write(horariosOcupados.Hour + "   -   ");
-                Console.WriteLine((Convert.ToDateTime(horariosOcupados.Hour).AddMinutes(Convert.ToUInt16(horariosOcupados.Duration))).ToString("HH:mm"));
-                horaComparacion = (DateTime.ParseExact(horariosOcupados.Hour, "HH:mm", null).AddMinutes(Convert.ToUInt16(horariosOcupados.Duration)));
+                if ((DateTime.ParseExact(horariosOcupados.Hour, "HH:mm", null)< horaFinalDia))
+                {
+                    var minutosDisponibles = (DateTime.ParseExact(horariosOcupados.Hour, "HH:mm", null) - horaComparacion).TotalMinutes;
+                    cuposDisponibles = minutosDisponibles / 30 >= 1 ? cuposDisponibles + (int)Math.Floor(minutosDisponibles / 30) : cuposDisponibles;
+                    horaComparacion = (DateTime.ParseExact(horariosOcupados.Hour, "HH:mm", null).AddMinutes(Convert.ToUInt16(horariosOcupados.Duration)));
+                }
             }
             if (horaComparacion <= horaFinalDia)
             {
